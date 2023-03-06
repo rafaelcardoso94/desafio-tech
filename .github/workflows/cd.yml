@@ -1,0 +1,101 @@
+name: Continuous Delivery
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-hml:
+    runs-on: ubuntu-latest
+    environment: hml
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Validation
+        uses: appleboy/ssh-action@master
+        with:
+          host: server-hml.com
+          username: username
+          key: ${{ secrets.SSH_PRIVATE_KEY }} 
+          script: |
+            cd /var/www/
+            if [ -d backup ]; then
+              echo "A pasta backup j� existe."
+            else
+              echo "A pasta backup não existe. Criando..."
+              mkdir backup
+            fi 
+     
+      - name: Versioning Themes
+        uses: appleboy/ssh-action@master
+        with:
+          host: server-hml.com
+          username: username
+          key: ${{ secrets.SSH_PRIVATE_KEY }} #Secret Environment Hml
+          script: |
+            echo [Criando variavel para exibição de hora]
+            export time=$(date +%Hh)
+            echo [Criando variavel para exibição de dia,mes e ano] 
+            export current_date=$(date +"%F")
+            echo [Versionando Tema antigo]
+            mv /var/www/html/wp-content/themes/twentyfifteen /var/www/html/wp-content/themes/twentyfifteen_${current_date}/${time}
+            echo [Movendo tema versionando para pasta backup]
+            mv /var/www/html/wp-content/themes/twentyfifteen_${current_date}/${time} /var/www/backup 
+            
+      - name: Send New Themes
+        uses: appleboy/scp-action@master
+        with:
+          host: server-hml.com
+          username: username
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: ./wordpress/wp-content/themes/twentyfifteen #Origem
+          target: /var/www/html/wp-content/themes/            #Destino
+
+
+
+  deploy-prd:
+    runs-on: ubuntu-latest
+    environment: prd
+    needs: [deploy-hml]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Validation
+        uses: appleboy/ssh-action@master
+        with:
+          host: server-prd.com
+          username: username
+          key: ${{ secrets.SSH_PRIVATE_KEY }} 
+          script: |
+            cd /var/www/
+            if [ -d backup ]; then
+              echo "A pasta já "backup" existe."
+            else
+              echo "A pasta "backup" não existe. Criando..."
+              mkdir backup
+            fi  
+      - name: Connect to server
+        uses: appleboy/ssh-action@master
+        with:
+          host: server-prd.com
+          username: username
+          key: ${{ secrets.SSH_PRIVATE_KEY }} #Secret Environment Prd
+          script: |
+            echo [Criando variavel para exibição de hora]
+            export time=$(date +%Hh)
+            echo [Criando variavel para exibição de dia,mes e ano] 
+            export current_date=$(date +"%F")
+            echo [Versionando Tema antigo]
+            mv /var/www/html/wp-content/themes/twentyfifteen /var/www/html/wp-content/themes/twentyfifteen_${current_date}/${time}
+            echo [Movendo tema versionando para pasta backup]
+            mv /var/www/html/wp-content/themes/twentyfifteen_${current_date}/${time} /var/www/backup 
+            
+      - name: Send New Themes
+        uses: appleboy/scp-action@master
+        with:
+          host: server-prd.com
+          username: username
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: ./wordpress/wp-content/themes/twentyfifteen #Origem
+          target: /var/www/html/wp-content/themes/            #Destino
