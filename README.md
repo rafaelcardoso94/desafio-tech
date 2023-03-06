@@ -66,4 +66,6 @@ Mesmo processo se repete para o ambiente de PRD, onde via github consiguimos sep
 environment: hml
 environment: prd
 ```
+Obs.: Interessante no ambiente de PRD ter uma trigger manual, dessa forma time de qualidade consegue validar ambiente de hml se encontra funcional e apartir desse replica as atualizações para o ambiente produtivo.
+
 
